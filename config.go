@@ -18,6 +18,7 @@ type Conf struct {
 	PollTime int
 	Notray   bool
 	Profile  string
+	AltIcon  bool
 }
 
 var defaultConf = Conf{
@@ -25,6 +26,7 @@ var defaultConf = Conf{
 	PollTime: 120,
 	Notray:   false,
 	Profile:  "default",
+	AltIcon:  false,
 }
 
 type Colours struct {
@@ -135,7 +137,7 @@ func (c *Colours) apply() (err error) {
 			}
 			// TODO: Add in other types of devices
 		} else {
-			fmt.Println("Device not configured: ", dev.FullName)
+			fmt.Println("Device not configured: ", dev.FullName())
 		}
 	}
 	return

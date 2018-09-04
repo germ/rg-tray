@@ -22,7 +22,11 @@ func main() {
 }
 
 func trayReady() {
-	systray.SetIcon(icon)
+	if Config.AltIcon {
+		systray.SetIcon(iconWhite)
+	} else {
+		systray.SetIcon(iconBlack)
+	}
 	systray.SetTitle("rg-tray configurator")
 	systray.SetTooltip("rg-tray")
 	mDisable := systray.AddMenuItem("Disable", "Turn off all LEDs")
