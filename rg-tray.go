@@ -3,20 +3,34 @@ package main
 
 import (
 	"fmt"
+	"os"
+
+	razer "github.com/germ/go-razer"
 	"github.com/getlantern/systray"
-	"gith
 )
 
 func main() {
-	systray.Run(onReady, onExit)
+	fmt.Println(Config)
+	c, err := readProfile(Config.Profile)
+	fmt.Println(c, err)
+	os.Exit(1)
+
+	fmt.Println("Probing Devices")
+	devices, _ := razer.Devices()
+	for _, v := range devices {
+		fmt.Println(v, v.String(), v.FullName(), v.Type())
+	}
+
+	systray.Run(trayReady, trayExit)
 }
 
-func onReady() {
-	systray.SetIcon(icon.Data)
+func trayReady() {
+	systray.SetIcon(icon)
 	systray.SetTitle("Awesome App")
 	systray.SetTooltip("Pretty awesome超级棒")
 	mQuit := systray.AddMenuItem("Quit", "Quit the whole app")
-}
-func onExit() {
+	_ = mQuit
 }
 
+func trayExit() {
+}
