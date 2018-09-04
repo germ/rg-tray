@@ -10,12 +10,8 @@ import (
 	"strings"
 
 	razer "github.com/germ/go-razer"
-	colours "github.com/go-playground/colors"
+	colours "github.com/lucasb-eyer/go-colorful"
 )
-
-const configPath = "~/.rgtray.json"
-
-var Config Conf
 
 type Conf struct {
 	GenieDir string
@@ -47,8 +43,19 @@ type Device struct {
 }
 
 func init() {
+	// List connected devices
+	dev, err := razer.Devices()
+	if err != nil {
+		fmt.Println("Could not start: ", err)
+		os.Exit(1)
+	}
+	for _, v := range dev {
+		fmt.Println("Found Device : ", v.FullName())
+	}
+
 	// Try loading conf, use default if not found
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		fmt.Println("Could not find ", configPath, "using default")
 		Config = defaultConf
 	} else {
 		data, err := ioutil.ReadFile(configPath)
@@ -60,6 +67,20 @@ func init() {
 		if err != nil {
 			panic(err)
 		}
+	}
+
+	// Load up the listed profile
+	Scheme, err = readProfile(Config.Profile)
+	if err != nil {
+		fmt.Println("Error loading config: ", err)
+		fmt.Println("Exiting")
+		os.Exit(-1)
+	}
+
+	fmt.Println(Scheme, Config)
+	err = Scheme.apply()
+	if err != nil {
+		fmt.Println("Error applying scheme: ", err)
 	}
 }
 
@@ -85,35 +106,36 @@ func (c *Colours) apply() (err error) {
 		return
 	}
 
-	for _, v := range devices {
-		if dev, ok := c.Dev[v.FullName()]; ok {
+	for _, dev := range devices {
+		if devConf, ok := c.Dev[dev.FullName()]; ok {
 			// Found device with configuration
-			switch dev.DevType {
+			switch devConf.DevType {
 			case "keyboard":
-				var keys []razer.KeySet
+				keys := dev.Keys()
 
 				// Generate stuff to send
-				for row, v := range dev.Matrix {
-					var curRow razer.KeySet
-					for key, rgb := range v {
-						curRow = append(curRow, razer.Key{
-							Row:   row,
-							Col:   key,
-							Color: rgb,
-						})
+				maxRow, maxCol := dev.MatrixDimensions()
+				for row, v := range devConf.Matrix {
+					for col, rgb := range v {
+						if col >= maxCol || row >= maxRow {
+							continue
+						}
+
+						key := keys.Key(row, col)
+						key.Color = rgb
 					}
-					keys = append(keys, curRow)
 				}
 
 				//Send it!
-				for 
+				dev.SetKeys(keys)
+
 			default:
 				fmt.Println("Your device is not supported at the moment")
 				fmt.Println("Open a issue and I'll get to it :)")
 			}
 			// TODO: Add in other types of devices
 		} else {
-			fmt.Println("Device not configured: ", v.FullName)
+			fmt.Println("Device not configured: ", dev.FullName)
 		}
 	}
 	return
@@ -166,14 +188,20 @@ func (c *Colours) UnmarshalJSON(data []byte) (err error) {
 					rowRaw := row.([]interface{})
 					var sRow []color.Color
 					for _, key := range rowRaw {
-						keyColour, err := colours.ParseHEX(key.(string))
+						// Blank
+						var keyColour colours.Color
+						if key.(string) == "" {
+							keyColour, err = colours.Hex("#000000")
+						} else {
+							keyColour, err = colours.Hex(key.(string))
+						}
+
 						if err != nil {
 							fmt.Println("Error parsing key: ", key.(string))
 							continue
 						}
 
-						rgb := keyColour.ToRGBA()
-						sRow = append(sRow, color.RGBA{R: rgb.R, G: rgb.G, B: rgb.B, A: 128})
+						sRow = append(sRow, keyColour)
 					}
 					NewDevice.Matrix = append(NewDevice.Matrix, sRow)
 				}
@@ -191,6 +219,7 @@ func (c *Colours) UnmarshalJSON(data []byte) (err error) {
 		}
 
 		c.Dev[devName] = NewDevice
+		delete(raw, devName)
 	}
 
 	if len(raw) != 0 {
@@ -199,4 +228,24 @@ func (c *Colours) UnmarshalJSON(data []byte) (err error) {
 	}
 
 	return
+}
+
+// Change brightness 0-100
+func changeAllBrightness(b float64) {
+	d, err := razer.Devices()
+	if err != nil {
+		fmt.Println("Error disabling devices: ", err)
+	}
+
+	for _, dev := range d {
+		if devCfg, ok := Scheme.Dev[dev.FullName()]; ok {
+			switch devCfg.DevType {
+			case "keyboard":
+				dev.SetBrightness(b)
+
+			default:
+				fmt.Println("Could not disable device.")
+			}
+		}
+	}
 }

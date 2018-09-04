@@ -3,34 +3,53 @@ package main
 
 import (
 	"fmt"
-	"os"
 
-	razer "github.com/germ/go-razer"
 	"github.com/getlantern/systray"
 )
 
+const configPath = "~/.rgtray.json"
+
+var Config Conf
+var Scheme Colours
+
 func main() {
-	fmt.Println(Config)
-	c, err := readProfile(Config.Profile)
-	fmt.Println(c, err)
-	os.Exit(1)
-
-	fmt.Println("Probing Devices")
-	devices, _ := razer.Devices()
-	for _, v := range devices {
-		fmt.Println(v, v.String(), v.FullName(), v.Type())
-	}
-
+	// Aight, so this is a bit weird. We call Run
+	// which starts the GUI and fires trayReady. Eventually
+	// The user clicks quit and trayExit fires
+	// Until then this blocks.
+	// Init is in config.go
 	systray.Run(trayReady, trayExit)
 }
 
 func trayReady() {
 	systray.SetIcon(icon)
-	systray.SetTitle("Awesome App")
-	systray.SetTooltip("Pretty awesome超级棒")
-	mQuit := systray.AddMenuItem("Quit", "Quit the whole app")
-	_ = mQuit
+	systray.SetTitle("rg-tray configurator")
+	systray.SetTooltip("rg-tray")
+	mDisable := systray.AddMenuItem("Disable", "Turn off all LEDs")
+	mEnable := systray.AddMenuItem("Enable", "Turn on all LEDs")
+	mQuit := systray.AddMenuItem("Quit", "Quit")
+
+	go func() {
+		for {
+			select {
+			case <-mQuit.ClickedCh:
+				fmt.Println("Quitting...")
+				systray.Quit()
+			case <-mDisable.ClickedCh:
+				fmt.Println("Disabling...")
+				mDisable.Disable()
+				mEnable.Enable()
+				changeAllBrightness(0.0)
+			case <-mEnable.ClickedCh:
+				fmt.Println("Enabling...")
+				mDisable.Enable()
+				mEnable.Disable()
+				changeAllBrightness(100.0)
+			}
+		}
+	}()
 }
 
 func trayExit() {
+	systray.Quit()
 }
