@@ -1,11 +1,14 @@
-#rg-tray 
+### rg-tray 
+
 A helper for RazerGenie configuration files and colorschemes
 for Razer keyboards that lives in your tray.
 
-###Screenshot
+##### Screenshot:
+
 ![It aint much right now :)](https://i.imgur.com/vrRmwSz.png)
 
-###Installation:
+##### Installation:
+
 Pacakges will be coming in the next bit, for now you must compile from source.
 ```
 git clone https://github.com/germ/rg-tray.git	# Clone the repo
@@ -15,11 +18,13 @@ go build					# Build an executable
 ```
 All resources are bundled into the executable, simply launch the program and go.
 
-###Color Schemes:
+##### Color Schemes:
+
 rg-tray uses schemes exported from [RazerGenie](https://github.com/z3ntu/RazerGenie)
 the default configuration uses 
 
-###Configuration:
+##### Configuration:
+
 Configuration is stored in ~/.rg-tray.json, the following options are configurable
 If no config is present, these defaults are used. Notray and Polltime are not 
 implemented yet
